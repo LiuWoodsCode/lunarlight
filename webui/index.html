@@ -6,18 +6,51 @@
 <title>DCIM File Manager</title>
 <style>
 :root {
-    color-scheme: light;
+    color-scheme: light dark;
     --bg: #f6f7f2;
     --panel: #ffffff;
     --ink: #17201c;
     --muted: #66716d;
     --line: #d9ded7;
+    --button-bg: #ffffff;
+    --button-hover-line: #aeb8b1;
+    --input-bg: #ffffff;
     --accent: #176b5f;
     --accent-strong: #0e4f45;
     --danger: #b42318;
+    --danger-line: #f0b4ad;
     --danger-bg: #fff0ed;
     --media: #e7ebe5;
+    --drop-bg: rgba(255, 255, 255, 0.68);
+    --drop-active-bg: #edf7f3;
+    --modal-bg: #ffffff;
+    --modal-content-bg: #111111;
+    --backdrop: rgba(0, 0, 0, 0.45);
     font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #111512;
+        --panel: #1b211d;
+        --ink: #eef3ed;
+        --muted: #a6b0aa;
+        --line: #333d37;
+        --button-bg: #242b26;
+        --button-hover-line: #657069;
+        --input-bg: #161b18;
+        --accent: #55b7a9;
+        --accent-strong: #7bd1c4;
+        --danger: #ffb4aa;
+        --danger-line: #7e332d;
+        --danger-bg: #361916;
+        --media: #252d28;
+        --drop-bg: rgba(27, 33, 29, 0.72);
+        --drop-active-bg: #18352f;
+        --modal-bg: #1b211d;
+        --modal-content-bg: #080908;
+        --backdrop: rgba(0, 0, 0, 0.68);
+    }
 }
 
 * {
@@ -40,14 +73,14 @@ button {
     min-height: 38px;
     border: 1px solid var(--line);
     border-radius: 6px;
-    background: #fff;
+    background: var(--button-bg);
     color: var(--ink);
     cursor: pointer;
     white-space: nowrap;
 }
 
 button:hover {
-    border-color: #aeb8b1;
+    border-color: var(--button-hover-line);
 }
 
 button.primary {
@@ -61,7 +94,7 @@ button.primary:hover {
 }
 
 button.danger {
-    border-color: #f0b4ad;
+    border-color: var(--danger-line);
     background: var(--danger-bg);
     color: var(--danger);
 }
@@ -109,7 +142,7 @@ h1 {
     border: 1px solid var(--line);
     border-radius: 6px;
     padding: 0 12px;
-    background: #fff;
+    background: var(--input-bg);
     color: var(--ink);
 }
 
@@ -120,7 +153,7 @@ h1 {
     margin-bottom: 16px;
     border: 1px dashed #9aa69f;
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.68);
+    background: var(--drop-bg);
     color: var(--muted);
     text-align: center;
     padding: 18px;
@@ -128,7 +161,7 @@ h1 {
 
 .dropzone.dragging {
     border-color: var(--accent);
-    background: #edf7f3;
+    background: var(--drop-active-bg);
     color: var(--accent-strong);
 }
 
@@ -235,7 +268,7 @@ h1 {
     align-items: center;
     justify-content: center;
     padding: 20px;
-    background: rgba(0, 0, 0, 0.45);
+    background: var(--backdrop);
 }
 
 .modal.visible {
@@ -247,7 +280,7 @@ h1 {
     max-height: min(760px, calc(100vh - 40px));
     overflow: auto;
     border-radius: 8px;
-    background: #fff;
+    background: var(--modal-bg);
 }
 
 .modal-head {
@@ -271,7 +304,7 @@ h1 {
     display: grid;
     place-items: center;
     min-height: 260px;
-    background: #111;
+    background: var(--modal-content-bg);
 }
 
 .modal-content img,
