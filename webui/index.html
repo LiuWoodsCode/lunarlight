@@ -1,0 +1,661 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DCIM File Manager</title>
+<style>
+:root {
+    color-scheme: light;
+    --bg: #f6f7f2;
+    --panel: #ffffff;
+    --ink: #17201c;
+    --muted: #66716d;
+    --line: #d9ded7;
+    --accent: #176b5f;
+    --accent-strong: #0e4f45;
+    --danger: #b42318;
+    --danger-bg: #fff0ed;
+    --media: #e7ebe5;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--ink);
+}
+
+button,
+input {
+    font: inherit;
+}
+
+button {
+    min-height: 38px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: #fff;
+    color: var(--ink);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+button:hover {
+    border-color: #aeb8b1;
+}
+
+button.primary {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #fff;
+}
+
+button.primary:hover {
+    background: var(--accent-strong);
+}
+
+button.danger {
+    border-color: #f0b4ad;
+    background: var(--danger-bg);
+    color: var(--danger);
+}
+
+.app {
+    width: min(1180px, calc(100vw - 28px));
+    margin: 0 auto;
+    padding: 18px 0 28px;
+}
+
+.topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 0 16px;
+}
+
+h1 {
+    margin: 0;
+    font-size: clamp(1.35rem, 2vw, 1.9rem);
+    line-height: 1.1;
+    letter-spacing: 0;
+}
+
+.pathline {
+    margin-top: 5px;
+    color: var(--muted);
+    font-size: 0.94rem;
+    overflow-wrap: anywhere;
+}
+
+.toolbar {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) auto auto auto;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+.search,
+.folder-name {
+    width: 100%;
+    min-height: 38px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 0 12px;
+    background: #fff;
+    color: var(--ink);
+}
+
+.dropzone {
+    display: grid;
+    place-items: center;
+    min-height: 92px;
+    margin-bottom: 16px;
+    border: 1px dashed #9aa69f;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.68);
+    color: var(--muted);
+    text-align: center;
+    padding: 18px;
+}
+
+.dropzone.dragging {
+    border-color: var(--accent);
+    background: #edf7f3;
+    color: var(--accent-strong);
+}
+
+.status {
+    min-height: 22px;
+    margin-bottom: 10px;
+    color: var(--muted);
+    font-size: 0.92rem;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+    gap: 12px;
+}
+
+.item {
+    display: grid;
+    grid-template-rows: 138px auto auto;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--panel);
+}
+
+.preview {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 138px;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    border-radius: 0;
+    background: var(--media);
+    color: var(--muted);
+    overflow: hidden;
+}
+
+.preview img,
+.preview video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.folder-icon,
+.file-icon {
+    font-size: 2.25rem;
+    font-weight: 700;
+    letter-spacing: 0;
+}
+
+.meta {
+    min-width: 0;
+    padding: 10px 10px 8px;
+}
+
+.name {
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sub {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 0.84rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    padding: 0 10px 10px;
+}
+
+.actions button {
+    min-width: 0;
+    padding: 0 8px;
+}
+
+.empty {
+    display: none;
+    padding: 54px 18px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--panel);
+    color: var(--muted);
+    text-align: center;
+}
+
+.empty.visible {
+    display: block;
+}
+
+.modal {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.45);
+}
+
+.modal.visible {
+    display: flex;
+}
+
+.modal-body {
+    width: min(860px, 100%);
+    max-height: min(760px, calc(100vh - 40px));
+    overflow: auto;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px;
+    border-bottom: 1px solid var(--line);
+}
+
+.modal-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 700;
+}
+
+.modal-content {
+    display: grid;
+    place-items: center;
+    min-height: 260px;
+    background: #111;
+}
+
+.modal-content img,
+.modal-content video {
+    display: block;
+    max-width: 100%;
+    max-height: 680px;
+}
+
+@media (max-width: 720px) {
+    .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .toolbar {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .search {
+        grid-column: 1 / -1;
+    }
+
+    .grid {
+        grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+    }
+
+    .actions {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+</head>
+<body>
+<main class="app">
+    <header class="topbar">
+        <div>
+            <h1>DCIM File Manager</h1>
+            <div class="pathline" id="pathline">/</div>
+        </div>
+        <button id="upButton" title="Open parent folder">Up</button>
+    </header>
+
+    <section class="toolbar">
+        <input class="search" id="search" type="search" placeholder="Search files">
+        <input id="fileInput" type="file" multiple hidden>
+        <button class="primary" id="uploadButton">Upload</button>
+        <button id="newFolderButton">New Folder</button>
+        <button id="refreshButton">Refresh</button>
+    </section>
+
+    <section class="dropzone" id="dropzone">Drop files here</section>
+    <div class="status" id="status"></div>
+    <section class="grid" id="grid"></section>
+    <section class="empty" id="empty">No files in this folder.</section>
+</main>
+
+<div class="modal" id="modal" aria-hidden="true">
+    <div class="modal-body">
+        <div class="modal-head">
+            <div class="modal-title" id="modalTitle"></div>
+            <button id="closeModal">Close</button>
+        </div>
+        <div class="modal-content" id="modalContent"></div>
+    </div>
+</div>
+
+<script>
+const state = {
+    path: '',
+    files: [],
+};
+
+const els = {
+    pathline: document.querySelector('#pathline'),
+    upButton: document.querySelector('#upButton'),
+    search: document.querySelector('#search'),
+    fileInput: document.querySelector('#fileInput'),
+    uploadButton: document.querySelector('#uploadButton'),
+    newFolderButton: document.querySelector('#newFolderButton'),
+    refreshButton: document.querySelector('#refreshButton'),
+    dropzone: document.querySelector('#dropzone'),
+    status: document.querySelector('#status'),
+    grid: document.querySelector('#grid'),
+    empty: document.querySelector('#empty'),
+    modal: document.querySelector('#modal'),
+    modalTitle: document.querySelector('#modalTitle'),
+    modalContent: document.querySelector('#modalContent'),
+    closeModal: document.querySelector('#closeModal'),
+};
+
+function apiUrl(path, params = {}) {
+    const query = new URLSearchParams(params);
+    return `${path}${query.toString() ? `?${query}` : ''}`;
+}
+
+function setStatus(message) {
+    els.status.textContent = message || '';
+}
+
+function displayPath(path) {
+    return path ? `/${path}` : '/';
+}
+
+function fileUrl(item, mode = 'media') {
+    const route = mode === 'download' ? '/download' : '/media';
+    return apiUrl(route, { path: item.path });
+}
+
+function formatBytes(bytes) {
+    if (bytes === null || bytes === undefined) {
+        return '';
+    }
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let size = bytes;
+    let unit = 0;
+    while (size >= 1024 && unit < units.length - 1) {
+        size /= 1024;
+        unit += 1;
+    }
+    return `${size.toFixed(unit ? 1 : 0)} ${units[unit]}`;
+}
+
+function parentPath(path) {
+    const parts = path.split('/').filter(Boolean);
+    parts.pop();
+    return parts.join('/');
+}
+
+async function requestJson(url, options = {}) {
+    const response = await fetch(url, options);
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        throw new Error(payload.error || `Request failed: ${response.status}`);
+    }
+    return payload;
+}
+
+async function loadFiles() {
+    setStatus('Loading...');
+    try {
+        const payload = await requestJson(apiUrl('/api/files', { path: state.path }));
+        state.files = payload.files;
+        state.path = payload.path;
+        render();
+        setStatus(`${state.files.length} item${state.files.length === 1 ? '' : 's'}`);
+    } catch (error) {
+        setStatus(error.message);
+    }
+}
+
+function render() {
+    els.pathline.textContent = displayPath(state.path);
+    els.upButton.disabled = !state.path;
+    const term = els.search.value.trim().toLowerCase();
+    const files = state.files.filter((item) => item.name.toLowerCase().includes(term));
+
+    els.grid.replaceChildren(...files.map(renderItem));
+    els.empty.classList.toggle('visible', files.length === 0);
+}
+
+function renderItem(item) {
+    const card = document.createElement('article');
+    card.className = 'item';
+
+    const preview = document.createElement('button');
+    preview.className = 'preview';
+    preview.title = item.is_dir ? 'Open folder' : 'Preview file';
+
+    if (item.is_dir) {
+        const icon = document.createElement('div');
+        icon.className = 'folder-icon';
+        icon.textContent = 'DIR';
+        preview.append(icon);
+        preview.addEventListener('click', () => {
+            state.path = item.path;
+            loadFiles();
+        });
+    } else if (item.kind === 'image') {
+        const image = document.createElement('img');
+        image.loading = 'lazy';
+        image.alt = item.name;
+        image.src = fileUrl(item);
+        preview.append(image);
+        preview.addEventListener('click', () => openPreview(item));
+    } else if (item.kind === 'video') {
+        const video = document.createElement('video');
+        video.src = fileUrl(item);
+        video.muted = true;
+        preview.append(video);
+        preview.addEventListener('click', () => openPreview(item));
+    } else {
+        const icon = document.createElement('div');
+        icon.className = 'file-icon';
+        icon.textContent = 'FILE';
+        preview.append(icon);
+        preview.addEventListener('click', () => window.open(fileUrl(item), '_blank'));
+    }
+
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    const name = document.createElement('div');
+    name.className = 'name';
+    name.title = item.name;
+    name.textContent = item.name;
+    const sub = document.createElement('div');
+    sub.className = 'sub';
+    sub.textContent = item.is_dir ? 'Folder' : `${formatBytes(item.size)} | ${item.modified}`;
+    meta.append(name, sub);
+
+    const actions = document.createElement('div');
+    actions.className = 'actions';
+    actions.append(
+        actionButton(item.is_dir ? 'Open' : 'View', () => item.is_dir ? openFolder(item) : openPreview(item)),
+        actionButton('Rename', () => renameItem(item)),
+        actionButton('Delete', () => deleteItem(item), 'danger'),
+    );
+    if (!item.is_dir) {
+        actions.append(actionButton('Save', () => window.location.href = fileUrl(item, 'download')));
+    }
+
+    card.append(preview, meta, actions);
+    return card;
+}
+
+function actionButton(label, handler, className = '') {
+    const button = document.createElement('button');
+    button.textContent = label;
+    if (className) {
+        button.className = className;
+    }
+    button.addEventListener('click', handler);
+    return button;
+}
+
+function openFolder(item) {
+    state.path = item.path;
+    loadFiles();
+}
+
+function openPreview(item) {
+    els.modalTitle.textContent = item.name;
+    els.modalContent.replaceChildren();
+
+    if (item.kind === 'image') {
+        const image = document.createElement('img');
+        image.alt = item.name;
+        image.src = fileUrl(item);
+        els.modalContent.append(image);
+    } else if (item.kind === 'video') {
+        const video = document.createElement('video');
+        video.src = fileUrl(item);
+        video.controls = true;
+        video.autoplay = true;
+        els.modalContent.append(video);
+    } else {
+        window.open(fileUrl(item), '_blank');
+        return;
+    }
+
+    els.modal.classList.add('visible');
+    els.modal.setAttribute('aria-hidden', 'false');
+}
+
+function closeModal() {
+    els.modal.classList.remove('visible');
+    els.modal.setAttribute('aria-hidden', 'true');
+    els.modalContent.replaceChildren();
+}
+
+async function uploadFiles(files) {
+    if (!files.length) {
+        return;
+    }
+    const form = new FormData();
+    form.append('path', state.path);
+    for (const file of files) {
+        form.append('files', file, file.name);
+    }
+
+    setStatus('Uploading...');
+    try {
+        const payload = await requestJson('/api/upload', {
+            method: 'POST',
+            body: form,
+        });
+        setStatus(`Uploaded ${payload.saved.length} file${payload.saved.length === 1 ? '' : 's'}`);
+        await loadFiles();
+    } catch (error) {
+        setStatus(error.message);
+    }
+}
+
+async function renameItem(item) {
+    const nextName = prompt('Rename to:', item.name);
+    if (!nextName || nextName === item.name) {
+        return;
+    }
+
+    try {
+        await requestJson('/api/rename', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: item.path, name: nextName }),
+        });
+        await loadFiles();
+    } catch (error) {
+        setStatus(error.message);
+    }
+}
+
+async function deleteItem(item) {
+    if (!confirm(`Delete ${item.name}?`)) {
+        return;
+    }
+
+    try {
+        await requestJson('/api/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: item.path }),
+        });
+        await loadFiles();
+    } catch (error) {
+        setStatus(error.message);
+    }
+}
+
+async function newFolder() {
+    const name = prompt('Folder name:');
+    if (!name) {
+        return;
+    }
+
+    try {
+        await requestJson('/api/mkdir', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: state.path, name }),
+        });
+        await loadFiles();
+    } catch (error) {
+        setStatus(error.message);
+    }
+}
+
+els.search.addEventListener('input', render);
+els.refreshButton.addEventListener('click', loadFiles);
+els.uploadButton.addEventListener('click', () => els.fileInput.click());
+els.fileInput.addEventListener('change', () => uploadFiles(els.fileInput.files));
+els.newFolderButton.addEventListener('click', newFolder);
+els.upButton.addEventListener('click', () => {
+    state.path = parentPath(state.path);
+    loadFiles();
+});
+els.closeModal.addEventListener('click', closeModal);
+els.modal.addEventListener('click', (event) => {
+    if (event.target === els.modal) {
+        closeModal();
+    }
+});
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+        closeModal();
+    }
+});
+
+for (const eventName of ['dragenter', 'dragover']) {
+    els.dropzone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        els.dropzone.classList.add('dragging');
+    });
+}
+
+for (const eventName of ['dragleave', 'drop']) {
+    els.dropzone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        els.dropzone.classList.remove('dragging');
+    });
+}
+
+els.dropzone.addEventListener('drop', (event) => uploadFiles(event.dataTransfer.files));
+
+loadFiles();
+</script>
+</body>
+</html>

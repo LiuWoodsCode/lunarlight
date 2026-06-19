@@ -3,16 +3,18 @@ import json
 import mimetypes
 import re
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 
 
 HOST = "127.0.0.1"
 PORT = 8000
-ROOT = Path(__file__).resolve().parent
-CONFIG_PATH = ROOT / "config.json"
-PHOTO_DIR = ROOT / "dcim"
+FRAME_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = FRAME_DIR.parent
+CONFIG_PATH = FRAME_DIR / "config.json"
+PHOTO_DIR = PROJECT_ROOT / "dcim"
 CONFIG_ROUTE = "/config"
 PHOTO_ROUTE = "/photos"
+DCIM_ROUTE = "/dcim/"
 IMAGE_EXTENSIONS = {
     ".avif",
     ".gif",
@@ -82,7 +84,7 @@ def discover_photos():
 
 class SlideshowHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, directory=ROOT, **kwargs)
+        super().__init__(*args, directory=FRAME_DIR, **kwargs)
 
     def do_GET(self):
         route = self.path.split("?", 1)[0]
@@ -95,10 +97,32 @@ class SlideshowHandler(SimpleHTTPRequestHandler):
             self.send_photos()
             return
 
+        if route.startswith(DCIM_ROUTE):
+            self.send_photo_file(route)
+            return
+
         super().do_GET()
 
     def send_photos(self):
         self.send_json(discover_photos())
+
+    def send_photo_file(self, route):
+        name = Path(unquote(route.removeprefix(DCIM_ROUTE))).name
+        path = (PHOTO_DIR / name).resolve()
+
+        if PHOTO_DIR.resolve() not in path.parents or not path.is_file():
+            self.send_error(404, "Photo not found")
+            return
+
+        content_type = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
+        body = path.read_bytes()
+
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
 
     def send_json(self, payload):
         body = json.dumps(payload).encode("utf-8")
