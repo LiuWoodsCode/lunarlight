@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fullscreen Slideshow</title>
+
+<style>
+html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+}
+
+.slideshow {
+    position: fixed;
+    inset: 0;
+}
+
+.slide {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.slide.active {
+    opacity: 1;
+}
+
+.debug-overlay {
+    position: fixed;
+    left: 16px;
+    bottom: 16px;
+    z-index: 10;
+    display: none;
+    min-width: 260px;
+    box-sizing: border-box;
+    background: rgba(0, 0, 0, 0.0);
+    color: #fff;
+    font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.debug-overlay.visible {
+    display: block;
+}
+
+.debug-row {
+    display: flex;
+    gap: 10px;
+}
+
+.debug-label {
+    flex: 0 0 72px;
+    color: #ffffff;
+}
+
+.debug-value {
+    min-width: max-content;
+    white-space: nowrap;
+}
+</style>
+</head>
+<body>
+
+<div class="slideshow" id="slideshow"></div>
+<div class="debug-overlay" id="debugOverlay"></div>
+
+<script>
+const slideshow = document.querySelector('#slideshow');
+const debugOverlay = document.querySelector('#debugOverlay');
+let current = 0;
+let slides = [];
+let photos = [];
+let config = {
+    secondsBetweenPictures: 5,
+    debugOverlay: {
+        enabled: false,
+        showCurrentFile: true,
+        showNextFile: true,
+        showPhotoCount: true,
+    },
+};
+
+function getIntervalMs() {
+    const seconds = Number(config.secondsBetweenPictures);
+    return Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : 5000;
+}
+
+function getNextIndex() {
+    return photos.length ? (current + 1) % photos.length : 0;
+}
+
+function updateDebugOverlay() {
+    const settings = config.debugOverlay || {};
+
+    if (!settings.enabled || !photos.length) {
+        debugOverlay.classList.remove('visible');
+        debugOverlay.replaceChildren();
+        return;
+    }
+
+    const rows = [];
+    if (settings.showCurrentFile) {
+        rows.push(['Current', photos[current].path || photos[current].name]);
+    }
+    if (settings.showNextFile) {
+        const nextPhoto = photos[getNextIndex()];
+        rows.push(['Next', nextPhoto.path || nextPhoto.name]);
+    }
+    if (settings.showPhotoCount) {
+        rows.push(['Count', `${current + 1} / ${photos.length}`]);
+    }
+
+    debugOverlay.replaceChildren(...rows.map(([label, value]) => {
+        const row = document.createElement('div');
+        const labelElement = document.createElement('span');
+        const valueElement = document.createElement('span');
+
+        row.className = 'debug-row';
+        labelElement.className = 'debug-label';
+        valueElement.className = 'debug-value';
+        labelElement.textContent = label;
+        valueElement.textContent = value;
+
+        row.append(labelElement, valueElement);
+        return row;
+    }));
+    debugOverlay.classList.toggle('visible', rows.length > 0);
+}
+
+function showNextSlide() {
+    if (slides.length < 2) {
+        return;
+    }
+
+    slides[current].classList.remove('active');
+    current = (current + 1) % slides.length;
+    slides[current].classList.add('active');
+    updateDebugOverlay();
+}
+
+async function loadSlides() {
+    const [configResponse, photosResponse] = await Promise.all([
+        fetch('/config'),
+        fetch('/photos'),
+    ]);
+
+    config = await configResponse.json();
+    photos = await photosResponse.json();
+
+    photos.forEach((photo, index) => {
+        const slide = document.createElement('div');
+        slide.className = `slide${index === 0 ? ' active' : ''}`;
+        slide.style.backgroundImage = `url('${photo.url}')`;
+        slideshow.appendChild(slide);
+    });
+
+    slides = document.querySelectorAll('.slide');
+    updateDebugOverlay();
+    setInterval(showNextSlide, getIntervalMs());
+}
+
+loadSlides();
+</script>
+
+</body>
+</html>
